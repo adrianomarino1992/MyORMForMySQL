@@ -24,7 +24,7 @@ packageReference
 
 ## Usage
 
-**Create a instance of PGContext:**
+**Create a instance of MySQLContext:**
 ```csharp
 public class Context : MySQLContext
     {
