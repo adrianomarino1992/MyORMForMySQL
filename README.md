@@ -4,10 +4,22 @@ MyORMForMySQL is a implementation of MyORM that uses MySQL as database.
 
 ## Installation
 
-Use the package manager [pip](https://pip.pypa.io/en/stable/) to install foobar.
+.NET CLI
 
 ```bash
-pip install foobar
+dotnet add package Adr.MyORMForMySQL --version 1.0.0
+```
+
+Nuget package manager
+
+```bash
+PM> Install-Package Adr.MyORMForMySQL -Version 1.0.0
+```
+
+packageReference
+
+```bash
+<PackageReference Include="Adr.MyORMForMySQL" Version="1.0.0" />
 ```
 
 ## Usage
