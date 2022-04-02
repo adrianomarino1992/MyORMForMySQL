@@ -1,9 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "wAIiA4nUSOdfg0FlQCwK5tl7a+RoesfP3f7M8emZKapoZtDqoaYKJFdHR+2XS64MjB6gn4XGhuP0FkhNbmr3rg==",
+  "dgSpecHash": "k3+RNQPzHOFRfNyPW9Knm2TuNXGaiKyQ1v5jOQ2bW50ivHsCeH5mp7gwEVwzdii4JNAUd9v8InLo+zj7C7RF7Q==",
   "success": true,
   "projectFilePath": "C:\\Users\\LuisDev\\Desktop\\MyORM\\MyORM\\MyORMForMySQL\\MyORMForMySQL.csproj",
   "expectedPackageFiles": [
+    "C:\\Users\\LuisDev\\.nuget\\packages\\adr.myorm\\1.0.1\\adr.myorm.1.0.1.nupkg.sha512",
     "C:\\Users\\LuisDev\\.nuget\\packages\\bouncycastle.netcore\\1.8.5\\bouncycastle.netcore.1.8.5.nupkg.sha512",
     "C:\\Users\\LuisDev\\.nuget\\packages\\google.protobuf\\3.14.0\\google.protobuf.3.14.0.nupkg.sha512",
     "C:\\Users\\LuisDev\\.nuget\\packages\\k4os.compression.lz4\\1.2.6\\k4os.compression.lz4.1.2.6.nupkg.sha512",

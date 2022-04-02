@@ -90,7 +90,7 @@ namespace MyORMForMySQL.Objects
             }
 
 
-            primaryKey = primaryKey && (colType.Trim() == "integer" || colType.Trim() == "bitint" || colType.Trim() == "bigint auto_increment");
+            primaryKey = primaryKey && (colType.Trim() == "integer" || colType.Trim() == "bitint" || colType.Trim() == "integer auto_increment" || colType.Trim() == "bigint auto_increment");
 
             if (ExecuteScalar<int>($"SELECT 1 FROM information_schema.columns WHERE table_schema = '{PGConnectionBuilder.DataBase}' AND table_name = '{table}' AND column_name = '{colName}'") == 1)
                 return;
@@ -127,7 +127,13 @@ namespace MyORMForMySQL.Objects
             bool key = info.GetCustomAttribute<DBPrimaryKeyAttribute>() != null;
 
             if (key)
-                return (colName, " bigint auto_increment ");
+            {
+                if (info.PropertyType == typeof(Int32))
+                    return (colName, " integer auto_increment ");
+                if (info.PropertyType == typeof(long))
+                    return (colName, " bigint auto_increment ");
+            }
+            
 
             if (info.PropertyType == typeof(string))
                 return (colName, " text ");
@@ -142,7 +148,13 @@ namespace MyORMForMySQL.Objects
                 return (colName, " real ");
 
             if (info.PropertyType == typeof(DateTime))
-                return (colName, " date ");            
+                return (colName, " date ");
+
+            if (info.PropertyType == typeof(bool))
+                return (colName, " boolean ");
+
+            if (info.PropertyType.IsEnum)
+                return (colName, " integer ");
 
             throw new CastFailException($"Can not cast the property {info.Name} to a column");
 
@@ -165,6 +177,12 @@ namespace MyORMForMySQL.Objects
 
             if (type == typeof(DateTime))
                 return " date ";
+
+            if (type == typeof(bool))
+                return " boolean ";
+
+            if (type.IsEnum)
+                return " integer ";
 
             throw new CastFailException($"Can not cast the type {type.Name} to a DBType");
 

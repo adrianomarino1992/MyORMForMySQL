@@ -554,6 +554,20 @@ namespace MyORMForMySQL.Objects
                     sql.Append(v == null ? "null" : $"'{v?.ToString()?.Trim()}'");
                 }
 
+                if (c.PropertyType == typeof(bool))
+                {
+                    object? v = c.GetValue(obj);
+
+                    sql.Append(v == null ? "null" : $"{v?.ToString()?.Trim().ToLower()}");
+                }
+
+                if (c.PropertyType.IsEnum)
+                {
+                    object? v = (int)c.GetValue(obj);
+
+                    sql.Append(v == null ? "null" : $"{v?.ToString()?.Trim()}");
+                }
+
                 if (c.PropertyType == typeof(int))
                 {
                     object? v = c.GetValue(obj);
