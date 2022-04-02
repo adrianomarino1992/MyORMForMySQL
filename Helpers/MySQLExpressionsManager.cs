@@ -217,6 +217,21 @@ namespace MyORMForMySQL.Helpers
 
                 return "";
             }
+            else if (expression?.NodeType == ExpressionType.Convert)
+            {
+                UnaryExpression? call = expression as UnaryExpression;
+
+                if (call != null)
+                {
+                    /*
+                     * note : the Operand is a ConstantExpression, so, if we need a return with correct type
+                     * we can cast Operand as ConstantExpression and return Value property
+                     */
+                    return call.Operand.ToString();
+                }
+
+                return "";
+            }
 
             return "";
         }
