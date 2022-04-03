@@ -94,7 +94,7 @@ namespace MyORMForMySQL.Objects
 
             if (ExecuteScalar<int>($"SELECT 1 FROM information_schema.columns WHERE table_schema = '{PGConnectionBuilder.DataBase}' AND table_name = '{table}' AND column_name = '{colName}'") == 1)
                 return;
-            ExecuteScalar<int>($"ALTER TABLE {PGConnectionBuilder.Schema}.{table} ADD COLUMN {colName} {colType} {(primaryKey ? " NOT NULL PRIMARY KEY " : "")}");
+            ExecuteScalar<int>($"ALTER TABLE {PGConnectionBuilder.Schema}.{table} ADD COLUMN `{colName}` {colType} {(primaryKey ? " NOT NULL PRIMARY KEY " : "")}");
 
             if (primaryKey)
                 return;

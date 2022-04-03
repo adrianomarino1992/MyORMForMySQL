@@ -76,20 +76,18 @@ namespace MyORMForMySQL.Objects
 
         public IQueryableCollection<T> And<TResult>(Expression<Func<T, TResult>> expression)
         {
-            MySQLCollection<T> result = new MySQLCollection<T>(_pGManager, _context);
+            MySQLCollection<T> result = new MySQLCollection<T>(_pGManager, _context);            
 
-            Expression? expressios = expression.Body as BinaryExpression;
-
-            IEnumerable<(ExpressionType?, Expression?)> exs = SplitInBinaryExpressions(null, expressios);
+            IEnumerable<(ExpressionType?, Expression?)> exs = SplitInBinaryExpressions(null, expression.Body);
 
 
             if (_sql.Trim().Length > 0)
             {
-                _sql = $"WHERE ( {_sql.Replace("WHERE", "")} ) AND {ManageBinaryExpressions<T>(exs)} ";
+                _sql = $" WHERE ( {_sql.Replace("WHERE", "")} ) AND {ManageBinaryExpressions<T>(exs)} ";
             }
             else
             {
-                _sql = ManageBinaryExpressions<T>(exs);
+                _sql = $" WHERE {ManageBinaryExpressions<T>(exs)} ";
             }
 
             result._sql = _sql;
@@ -99,19 +97,17 @@ namespace MyORMForMySQL.Objects
 
         public IQueryableCollection<T> Or<TResult>(Expression<Func<T, TResult>> expression)
         {
-            MySQLCollection<T> result = new MySQLCollection<T>(_pGManager, _context);
+            MySQLCollection<T> result = new MySQLCollection<T>(_pGManager, _context);            
 
-            Expression? expressios = expression.Body as BinaryExpression;
-
-            IEnumerable<(ExpressionType?, Expression?)> exs = SplitInBinaryExpressions(null, expressios);
+            IEnumerable<(ExpressionType?, Expression?)> exs = SplitInBinaryExpressions(null, expression.Body);
 
             if (_sql.Trim().Length > 0)
             {
-                _sql = $"WHERE ( {_sql.Replace("WHERE", "")} ) OR {ManageBinaryExpressions<T>(exs)} ";
+                _sql = $" WHERE ( {_sql.Replace("WHERE", "")} ) OR {ManageBinaryExpressions<T>(exs)} ";
             }
             else
             {
-                _sql = ManageBinaryExpressions<T>(exs);
+                _sql = $" WHERE {ManageBinaryExpressions<T>(exs)} ";
             }
 
             result._sql = _sql;
@@ -151,12 +147,12 @@ namespace MyORMForMySQL.Objects
             _sql = $" {_sql} ORDER BY {(String.IsNullOrEmpty(colName?.Name) ? member.Name.ToLower().Trim() : colName.Name)} ";
 
             result._sql = _sql;
-                        
+
 
             foreach ((PropertyInfo infoS, string sqlS) in _subTypes)
             {
                 result._subTypes.Add(new(infoS, sqlS));
-            }            
+            }
 
 
             return result;
@@ -359,6 +355,32 @@ namespace MyORMForMySQL.Objects
                     }
 
                     {
+                        if (prop.PropertyType == typeof(bool) && prop.SetMethod != null)
+                        {
+                            prop.SetValue(it, row[colName]);
+                            continue;
+                        }
+                    }
+
+                    {
+                        if (prop.PropertyType.IsEnum && prop.SetMethod != null)
+                        {
+
+                            foreach (var enums in Enum.GetValues(prop.PropertyType))
+                            {
+                                if((int)enums == (int)row[colName])
+                                {
+                                    prop.SetValue(it, row[colName]);
+                                    goto END;
+                                }
+
+                            }
+                            END:
+                            continue;
+                        }
+                    }
+
+                    {
                         if (prop.PropertyType == typeof(int) && prop.SetMethod != null && int.TryParse(row[colName].ToString(), out int _out))
                         {
                             prop.SetValue(it, _out);
@@ -419,9 +441,9 @@ namespace MyORMForMySQL.Objects
                 }
 
 
-                 props = it.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                   .Where(d => (d.PropertyType != typeof(string) &&  d.PropertyType.IsAssignableTo(typeof(IEnumerable))))
-                   .Where(d => d.GetCustomAttribute<DBIgnoreAttribute>() == null).ToList();
+                props = it.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                  .Where(d => (d.PropertyType != typeof(string) && d.PropertyType.IsAssignableTo(typeof(IEnumerable))))
+                  .Where(d => d.GetCustomAttribute<DBIgnoreAttribute>() == null).ToList();
 
 
                 foreach (PropertyInfo prop in props)
@@ -467,8 +489,8 @@ namespace MyORMForMySQL.Objects
 
                     }
                 }
-                
-                
+
+
                 list?.Add(it);
             }
 
@@ -595,7 +617,7 @@ namespace MyORMForMySQL.Objects
                         sql.Append($"{v?.ToString()?.Trim()}");
                     }
 
-                    
+
                 }
 
                 if (c.PropertyType == typeof(decimal) || c.PropertyType == typeof(float) || c.PropertyType == typeof(double))
@@ -640,7 +662,7 @@ namespace MyORMForMySQL.Objects
                     }
                     else
                     {
-                        sql.Append( $"' {System.Text.Json.JsonSerializer.Serialize(v)}'");
+                        sql.Append($"' {System.Text.Json.JsonSerializer.Serialize(v)}'");
                     }
 
 
@@ -725,7 +747,7 @@ namespace MyORMForMySQL.Objects
                     methodName = Convert.ToInt64(propKey.GetValue(subItem.GetValue(obj)).ToString()) <= 0 ? "Add" : "Update";
 
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
                     throw new InvalidConstraintException($"Can not get key value from {subItem.PropertyType}.{propKey.Name} property");
                 }
@@ -811,6 +833,21 @@ namespace MyORMForMySQL.Objects
                     object? v = c.GetValue(obj);
 
                     sql.Append(v == null ? "null" : $"'{v?.ToString()?.Trim()}'");
+                }
+
+
+                if (c.PropertyType == typeof(bool))
+                {
+                    object? v = c.GetValue(obj);
+
+                    sql.Append(v == null ? "null" : $"{v?.ToString()?.Trim().ToLower()}");
+                }
+
+                if (c.PropertyType.IsEnum)
+                {
+                    object? v = (int)c.GetValue(obj);
+
+                    sql.Append(v == null ? "null" : $"{v?.ToString()?.Trim()}");
                 }
 
                 if (c.PropertyType == typeof(int) || c.PropertyType == typeof(long))
@@ -945,7 +982,7 @@ namespace MyORMForMySQL.Objects
                .ToList();
 
 
-            foreach(PropertyInfo subItem in childrenObjects)
+            foreach (PropertyInfo subItem in childrenObjects)
             {
                 if (subItem.GetValue(obj) == null)
                     continue;
@@ -967,7 +1004,7 @@ namespace MyORMForMySQL.Objects
                 catch (Exception ex)
                 {
                     throw new InvalidConstraintException($"Can not get key value from {subItem.PropertyType}.{propKey.Name} property");
-                }                              
+                }
 
 
                 IEntityCollection collection = _context.Collection(subItem.PropertyType);
@@ -981,7 +1018,7 @@ namespace MyORMForMySQL.Objects
 
             }
 
-            
+
 
 
         }

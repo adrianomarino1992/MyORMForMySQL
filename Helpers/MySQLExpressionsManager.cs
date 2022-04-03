@@ -98,11 +98,19 @@ namespace MyORMForMySQL.Helpers
                     BinaryExpression? binaryEx = ex as BinaryExpression;
 
                     if (binaryEx != null)
-                    {                       
+                    {
+                        Expression leftExpression = binaryEx.Left as MemberExpression;
+
+                        if (leftExpression == null && binaryEx.Left is UnaryExpression unaryExpression)
+                        {
+                            leftExpression = unaryExpression.Operand as MemberExpression;
+                        }
+
+                        leftExpression = leftExpression ?? binaryEx.Left;
 
                         DBColumnAttribute? colName = info.GetCustomAttribute<DBColumnAttribute>();
 
-                        string? leftSize = binaryEx?.Left.ToString().Split(new String[] { "." }, StringSplitOptions.None)[1].ToLower().Trim();
+                        string? leftSize = leftExpression.ToString().Split(new String[] { "." }, StringSplitOptions.None)[1].ToLower().Trim();
 
                         if (info.PropertyType == typeof(string) && info.Name.ToLower() == leftSize)
                         {
@@ -169,17 +177,17 @@ namespace MyORMForMySQL.Helpers
 
                         if (methodCallEx.Method.Name == "Contains")
                         {
-                            result.Append($" {colName} ilike '%{value}%' ");
+                            result.Append($" {colName} like '%{value}%' ");
                         }
 
                         if (methodCallEx.Method.Name == "StartsWith")
                         {
-                            result.Append($" {colName} ilike '{value}%' ");
+                            result.Append($" {colName} like '{value}%' ");
                         }
 
                         if (methodCallEx.Method.Name == "EndsWith")
                         {
-                            result.Append($" {colName} ilike '%{value}' ");
+                            result.Append($" {colName} like '%{value}' ");
                         }
 
                         if (methodCallEx.Method.Name == "Equals")
@@ -227,7 +235,16 @@ namespace MyORMForMySQL.Helpers
                      * note : the Operand is a ConstantExpression, so, if we need a return with correct type
                      * we can cast Operand as ConstantExpression and return Value property
                      */
-                    return call.Operand.ToString();
+
+                    if (call.Operand.Type.IsEnum)
+                    {
+                        return ((int)(call.Operand as ConstantExpression).Value).ToString();
+                    }
+                    else
+                    {
+
+                        return call.Operand.ToString();
+                    }
                 }
 
                 return "";
@@ -265,8 +282,8 @@ namespace MyORMForMySQL.Helpers
 
     class Visitor : ExpressionVisitor
     {
-        protected override Expression VisitMember
-            (MemberExpression memberExpression)
+        private Type _type = null;
+        protected override Expression VisitMember(MemberExpression memberExpression)
         {            
             var expression = Visit(memberExpression.Expression);
                         
@@ -286,6 +303,77 @@ namespace MyORMForMySQL.Helpers
                 }
             }
             return base.VisitMember(memberExpression);
+        }
+
+        protected override Expression VisitBinary(BinaryExpression node)
+        {
+
+            Expression left = Visit(node.Left);
+            Expression righh = Visit(node.Right);
+
+            try
+            {
+
+                return base.VisitBinary(node);
+            }
+            catch
+            {
+                BinaryExpression expression = Expression.Equal(left, righh);
+                return base.VisitBinary(expression);
+            }
+
+        }
+
+        protected override Expression VisitUnary(UnaryExpression node)
+        {
+
+            try
+            {
+                if (node.Type.Name.ToLower().Contains("nullable"))
+                {
+                    MemberExpression ex = node.Operand as MemberExpression;
+
+                    if (ex == null || ex.Member.GetType().BaseType.Name == "RuntimeFieldInfo")
+                    {
+                        throw new Exception("Try get value");
+                    }
+
+                    if (ex.Member is PropertyInfo info)
+                    {
+                        _type = info.PropertyType;
+                    }
+
+                    return node.Operand;
+                }
+                else
+                {
+
+                    return base.VisitUnary(node);
+                }
+            }
+            catch
+            {
+                object parameter = ((node.Operand as MemberExpression).Expression as ConstantExpression).Value;
+
+                if (parameter == null)
+                    return Expression.Constant(null);
+                else
+                {
+                    try
+                    {
+                        object valueOfParameter = parameter.GetType().GetFields()[0].GetValue(parameter);
+
+                        object parsed = System.Convert.ChangeType(valueOfParameter, _type);
+
+                        return Expression.Constant(parsed);
+                    }
+                    catch
+                    {
+                        return Expression.Constant(null);
+                    }
+                }
+            }
+
         }
     }
 }
