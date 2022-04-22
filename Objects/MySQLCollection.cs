@@ -1122,7 +1122,7 @@ namespace MyORMForMySQL.Objects
                 throw new global::MyORM.Exceptions.InvalidMemberForExpressionException($"Can´t read the PropertyInfo of the member of expression");
             }
 
-            if (!(member.ReflectedType == typeof(T)))
+            if (!(member.ReflectedType == typeof(T) || typeof(T).IsSubclassOf(member.ReflectedType)))
             {
                 throw new global::MyORM.Exceptions.InvalidMemberForExpressionException($"The property {member.Name} is not a property of {typeof(T).Name}");
 

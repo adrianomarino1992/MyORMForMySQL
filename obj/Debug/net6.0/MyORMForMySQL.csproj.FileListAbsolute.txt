@@ -9,3 +9,4 @@ C:\Users\LuisDev\Desktop\MyORM\MyORM\MyORMForMySQL\obj\Debug\net6.0\MyORMForMySQ
 C:\Users\LuisDev\Desktop\MyORM\MyORM\MyORMForMySQL\obj\Debug\net6.0\MyORMForMySQL.dll
 C:\Users\LuisDev\Desktop\MyORM\MyORM\MyORMForMySQL\obj\Debug\net6.0\ref\MyORMForMySQL.dll
 C:\Users\LuisDev\Desktop\MyORM\MyORM\MyORMForMySQL\obj\Debug\net6.0\MyORMForMySQL.pdb
+C:\Users\LuisDev\Desktop\MyORM\MyORM\MyORMForMySQL\obj\Debug\net6.0\MyORMForMySQL.csproj.AssemblyReference.cache
