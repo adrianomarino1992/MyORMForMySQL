@@ -17,14 +17,14 @@ using MyORM.Enums;
 
 namespace MyORMForMySQL.Objects
 {
-    
+
     public class MySQLManager : IDBManager
     {
-        public MySQLConnectionBuilder PGConnectionBuilder { get; }
+        public MySQLConnectionBuilder MySQLConnectionBuilder { get; }
 
         public MySQLManager(MySQLConnectionBuilder builder)
         {
-            PGConnectionBuilder = builder;
+            MySQLConnectionBuilder = builder;
         }
 
         public void CreateColumn(string table, PropertyInfo info)
@@ -51,16 +51,16 @@ namespace MyORMForMySQL.Objects
             bool isArray = info.PropertyType.IsAssignableTo(typeof(IEnumerable)) && info.PropertyType != typeof(string);
 
             string colName, colType = String.Empty;
-                        
 
-            if(isArray)
+
+            if (isArray)
             {
 
                 Type arrayType = info.PropertyType.GetElementType() ?? info.PropertyType.GetGenericArguments()[0];
 
-                bool isValueType = (!arrayType.IsClass) || arrayType == typeof(string) ;
+                bool isValueType = (!arrayType.IsClass) || arrayType == typeof(string);
 
-                if(isValueType)
+                if (isValueType)
                 {
                     try
                     {
@@ -72,11 +72,11 @@ namespace MyORMForMySQL.Objects
                         return;
                     }
 
-                    if (ExecuteScalar<int>($"SELECT 1 FROM information_schema.columns WHERE table_schema = '{PGConnectionBuilder.DataBase}' AND table_name = '{table}' AND column_name = '{colName}'") == 1)
+                    if (ExecuteScalar<int>($"SELECT 1 FROM information_schema.columns WHERE table_schema = '{MySQLConnectionBuilder.DataBase}' AND table_name = '{table}' AND column_name = '{colName}'") == 1)
                         return;
-                    ExecuteScalar<int>($"ALTER TABLE {PGConnectionBuilder.Schema}.{table} ADD COLUMN {colName} text ");
-                        return;
-                }                
+                    ExecuteScalar<int>($"ALTER TABLE {MySQLConnectionBuilder.Schema}.{table} ADD COLUMN {colName} text ");
+                    return;
+                }
 
             }
 
@@ -92,9 +92,9 @@ namespace MyORMForMySQL.Objects
 
             primaryKey = primaryKey && (colType.Trim() == "integer" || colType.Trim() == "bitint" || colType.Trim() == "integer auto_increment" || colType.Trim() == "bigint auto_increment");
 
-            if (ExecuteScalar<int>($"SELECT 1 FROM information_schema.columns WHERE table_schema = '{PGConnectionBuilder.DataBase}' AND table_name = '{table}' AND column_name = '{colName}'") == 1)
+            if (ExecuteScalar<int>($"SELECT 1 FROM information_schema.columns WHERE table_schema = '{MySQLConnectionBuilder.DataBase}' AND table_name = '{table}' AND column_name = '{colName}'") == 1)
                 return;
-            ExecuteScalar<int>($"ALTER TABLE {PGConnectionBuilder.Schema}.{table} ADD COLUMN `{colName}` {colType} {(primaryKey ? " NOT NULL PRIMARY KEY " : "")}");
+            ExecuteScalar<int>($"ALTER TABLE {MySQLConnectionBuilder.Schema}.{table} ADD COLUMN `{colName}` {colType} {(primaryKey ? " NOT NULL PRIMARY KEY " : "")}");
 
             if (primaryKey)
                 return;
@@ -108,8 +108,8 @@ namespace MyORMForMySQL.Objects
                 string subColName = subKeyProperty.GetCustomAttribute<DBColumnAttribute>()?.Name ?? subKeyProperty.Name.ToLower();
                 DeleteMode mode = info.GetCustomAttribute<DBDeleteModeAttribute>()?.DeleteMode ?? DeleteMode.NOACTION;
                 string consName = $"{table}_{colName}_fkey";
-                string constraint = $@"ALTER TABLE {PGConnectionBuilder.Schema}.{table} ADD CONSTRAINT {consName} FOREIGN KEY ({colName})
-                                        REFERENCES {PGConnectionBuilder.Schema}.{subTable} ({subColName}) 
+                string constraint = $@"ALTER TABLE {MySQLConnectionBuilder.Schema}.{table} ADD CONSTRAINT {consName} FOREIGN KEY ({colName})
+                                        REFERENCES {MySQLConnectionBuilder.Schema}.{subTable} ({subColName}) 
                                         ON UPDATE NO ACTION
                                         ON DELETE {(mode == DeleteMode.CASCADE ? "CASCADE" : "NO ACTION")}";
 
@@ -121,19 +121,19 @@ namespace MyORMForMySQL.Objects
             }
         }
 
-        public (string, string) GetColumnNameAndType(PropertyInfo info)
+        public (string, string) GetColumnNameAndType(PropertyInfo info, bool checkKey = true)
         {
             string colName = info.GetCustomAttribute<DBColumnAttribute>()?.Name ?? info.Name.ToLower();
             bool key = info.GetCustomAttribute<DBPrimaryKeyAttribute>() != null;
 
-            if (key)
+            if (key && checkKey)
             {
                 if (info.PropertyType == typeof(Int32))
                     return (colName, " integer auto_increment ");
                 if (info.PropertyType == typeof(long))
                     return (colName, " bigint auto_increment ");
             }
-            
+
 
             if (info.PropertyType == typeof(string))
                 return (colName, " text ");
@@ -167,7 +167,7 @@ namespace MyORMForMySQL.Objects
                 return " text ";
 
             if (type == typeof(Int32))
-                return  " integer ";
+                return " integer ";
 
             if (type == typeof(long))
                 return " bigint ";
@@ -193,7 +193,7 @@ namespace MyORMForMySQL.Objects
         {
             if (!DataBaseExists())
             {
-                ExecuteNonQuery($"CREATE DATABASE IF NOT EXISTS {PGConnectionBuilder.DataBase.ToLower().Trim()}", DB.MYSQL);
+                ExecuteNonQuery($"CREATE DATABASE IF NOT EXISTS {MySQLConnectionBuilder.DataBase.ToLower().Trim()}", DB.MYSQL);
             }
         }
 
@@ -202,18 +202,18 @@ namespace MyORMForMySQL.Objects
 
             string tableName = typeof(T).GetCustomAttribute<DBTableAttribute>()?.Name ?? typeof(T).Name.ToLower();
 
-            ExecuteNonQuery($"CREATE TABLE IF NOT EXISTS {PGConnectionBuilder.Schema}.{tableName}(objid integer)");            
+            ExecuteNonQuery($"CREATE TABLE IF NOT EXISTS {MySQLConnectionBuilder.Schema}.{tableName}(objid integer)");
 
         }
 
         public bool ColumnExists(string table, string colName)
         {
-            return ExecuteScalar<int>($"SELECT * FROM information_schema.columns WHERE table_catalog = '{PGConnectionBuilder.DataBase}' AND table_name = '{table}' AND column_name = '{colName}'") == 1;
+            return ExecuteScalar<int>($"SELECT * FROM information_schema.columns WHERE table_catalog = '{MySQLConnectionBuilder.DataBase}' AND table_name = '{table}' AND column_name = '{colName}'") == 1;
         }
 
         public bool DataBaseExists()
         {
-            return ExecuteScalar<int>($"SELECT 1 FROM information_schema.schemata WHERE schema_name='{PGConnectionBuilder.DataBase.ToLower().Trim()}'", DB.MYSQL) == 1;
+            return ExecuteScalar<int>($"SELECT 1 FROM information_schema.schemata WHERE schema_name='{MySQLConnectionBuilder.DataBase.ToLower().Trim()}'", DB.MYSQL) == 1;
         }
 
 
@@ -221,7 +221,7 @@ namespace MyORMForMySQL.Objects
         {
             string tableName = typeof(T).GetCustomAttribute<DBTableAttribute>()?.Name ?? typeof(T).Name.ToLower();
 
-            return ExecuteScalar<int>($"SELECT * FROM information_schema.tables WHERE table_catalog = '{PGConnectionBuilder.DataBase}' AND table_name = '{tableName}'") == 1;
+            return ExecuteScalar<int>($"SELECT * FROM information_schema.tables WHERE table_catalog = '{MySQLConnectionBuilder.DataBase}' AND table_name = '{tableName}'") == 1;
         }
 
 
@@ -239,7 +239,7 @@ namespace MyORMForMySQL.Objects
         {
             if (DataBaseExists())
             {
-                ExecuteNonQuery($"DROP DATABASE {PGConnectionBuilder.DataBase.ToLower().Trim()}", DB.MYSQL);
+                ExecuteNonQuery($"DROP DATABASE {MySQLConnectionBuilder.DataBase.ToLower().Trim()}", DB.MYSQL);
             }
         }
 
@@ -250,11 +250,11 @@ namespace MyORMForMySQL.Objects
             ExecuteNonQuery($"DROP TABLE IF EXISTS {tableName}");
         }
 
-        public void FitColumns(string table, IEnumerable<PropertyInfo> info)
+        public void FitColumns(string table, IEnumerable<PropertyInfo> infos)
         {
-            DataSet? dt = GetDataSet($"SELECT column_name FROM information_schema.columns WHERE table_catalog = '{PGConnectionBuilder.DataBase}' AND table_name = '{table}'");
+            DataSet? dt = GetDataSet($"SELECT column_name, data_type FROM information_schema.columns WHERE table_schema = '{MySQLConnectionBuilder.DataBase}' AND table_name = '{table}'");
 
-            List<string?> columns = new List<string?>();
+            List<(string?, string?)> columns = new List<(string?, string?)>();
 
             if (dt == null)
                 return;
@@ -264,25 +264,74 @@ namespace MyORMForMySQL.Objects
 
             foreach (DataRow row in dt.Tables[0].Rows)
             {
-                columns.Add(row["column_name"].ToString());
+                columns.Add((row["column_name"].ToString(), row["data_type"].ToString()));
             }
 
-            foreach (string? col in columns)
+            foreach ((string? col, string? type) in columns)
             {
+                PropertyInfo? info = infos.FirstOrDefault(d => d.GetCustomAttribute<DBColumnAttribute>()?.Name == col || (d.GetCustomAttribute<DBColumnAttribute>() == null && col == d.Name.ToLower()));
                 if (col != null)
                 {
-                    if (!info.Any(d => d.GetCustomAttribute<DBColumnAttribute>()?.Name == col || (d.GetCustomAttribute<DBColumnAttribute>() == null && col == d.Name.ToLower())))
+                    if (info == null)
                     {
-                        ExecuteNonQuery($"ALTER TABLE {PGConnectionBuilder.Schema}.{table} DROP COLUMN {col}");
+                        ExecuteNonQuery($"ALTER TABLE {MySQLConnectionBuilder.Schema}.{table} DROP COLUMN {col}");
+                        continue;
                     }
                 }
+
+
+                if (info != null)
+                {
+                    bool isArray = info.PropertyType.IsAssignableTo(typeof(IEnumerable)) && info.PropertyType != typeof(string);
+
+                    string colType = String.Empty;
+
+                    if (isArray)
+                    {
+                        Type arrayType = info.PropertyType.GetElementType() ?? info.PropertyType.GetGenericArguments()[0];
+
+                        bool isValueType = (!arrayType.IsClass) || arrayType == typeof(string);
+
+                        if (isValueType)
+                        {
+                            colType = GetDBTypeFromStruct(typeof(string));
+                            goto UP;
+                        }
+
+                        continue;
+
+                        
+                    }
+
+                    (string _, colType) = GetColumnNameAndType(info, false);
+
+                UP:
+                    if (colType.Trim().ToLower() != type?.Trim().ToLower())
+                    {
+                        try
+                        {
+                            ExecuteNonQuery($"ALTER TABLE {MySQLConnectionBuilder.Schema}.{table} MODIFY {col} {colType}");
+
+                        }
+                        catch
+                        {
+                            ExecuteNonQuery($"ALTER TABLE {MySQLConnectionBuilder.Schema}.{table} DROP COLUMN {col}");
+                            CreateColumn(table, info);
+
+                        }
+                        continue;
+                    }
+
+                }
+
+
             }
 
         }
 
         public bool TryConnection()
         {
-            IDbConnection conn = PGConnectionBuilder.NewConnection();
+            IDbConnection conn = MySQLConnectionBuilder.NewConnection();
 
             try
             {
@@ -308,20 +357,20 @@ namespace MyORMForMySQL.Objects
 
             if (db == DB.MYSQL)
             {
-                temp = PGConnectionBuilder.DataBase;
-                PGConnectionBuilder.DataBase = "mysql";
+                temp = MySQLConnectionBuilder.DataBase;
+                MySQLConnectionBuilder.DataBase = "mysql";
             }
 
-            IDbConnection conn = PGConnectionBuilder.NewConnection();
+            IDbConnection conn = MySQLConnectionBuilder.NewConnection();
 
             if (db == DB.MYSQL)
-                PGConnectionBuilder.DataBase = temp;
+                MySQLConnectionBuilder.DataBase = temp;
 
             try
             {
                 conn.Open();
 
-                IDbCommand cmd = PGConnectionBuilder.NewCommand(conn);
+                IDbCommand cmd = MySQLConnectionBuilder.NewCommand(conn);
 
                 cmd.CommandText = query;
 
@@ -348,20 +397,20 @@ namespace MyORMForMySQL.Objects
 
             if (db == DB.MYSQL)
             {
-                temp = PGConnectionBuilder.DataBase;
-                PGConnectionBuilder.DataBase = "mysql";
+                temp = MySQLConnectionBuilder.DataBase;
+                MySQLConnectionBuilder.DataBase = "mysql";
             }
 
-            IDbConnection conn = PGConnectionBuilder.NewConnection();
+            IDbConnection conn = MySQLConnectionBuilder.NewConnection();
 
             if (db == DB.MYSQL)
-                PGConnectionBuilder.DataBase = temp;
+                MySQLConnectionBuilder.DataBase = temp;
 
             try
             {
                 conn.Open();
 
-                IDbCommand cmd = PGConnectionBuilder.NewCommand(conn);
+                IDbCommand cmd = MySQLConnectionBuilder.NewCommand(conn);
 
                 cmd.CommandText = query;
 
@@ -384,20 +433,20 @@ namespace MyORMForMySQL.Objects
 
             if (db == DB.MYSQL)
             {
-                temp = PGConnectionBuilder.DataBase;
-                PGConnectionBuilder.DataBase = "mysql";
+                temp = MySQLConnectionBuilder.DataBase;
+                MySQLConnectionBuilder.DataBase = "mysql";
             }
 
-            IDbConnection conn = PGConnectionBuilder.NewConnection();
+            IDbConnection conn = MySQLConnectionBuilder.NewConnection();
 
             if (db == DB.MYSQL)
-                PGConnectionBuilder.DataBase = temp;
+                MySQLConnectionBuilder.DataBase = temp;
 
             try
             {
                 conn.Open();
 
-                IDbCommand cmd = PGConnectionBuilder.NewCommand(conn);
+                IDbCommand cmd = MySQLConnectionBuilder.NewCommand(conn);
 
                 cmd.CommandText = query;
 

@@ -203,7 +203,7 @@ namespace MyORMForMySQL.Objects
         {
             string tableName = typeof(T).GetCustomAttribute<DBColumnAttribute>()?.Name ?? typeof(T).Name;
 
-            string schema = _pGManager.PGConnectionBuilder.Schema;
+            string schema = _pGManager.MySQLConnectionBuilder.Schema;
 
             string query = $" SELECT COUNT(*)::integer FROM {schema}.{tableName} ";
 
@@ -219,7 +219,7 @@ namespace MyORMForMySQL.Objects
         public IEnumerable<T> Run()
         {
             string tableName = typeof(T).GetCustomAttribute<DBColumnAttribute>()?.Name ?? typeof(T).Name;
-            string schema = _pGManager.PGConnectionBuilder.Schema;
+            string schema = _pGManager.MySQLConnectionBuilder.Schema;
 
             string query = $" SELECT * FROM {schema}.{tableName} " + _sql;
 
@@ -515,7 +515,7 @@ namespace MyORMForMySQL.Objects
             string tableName = typeof(T).GetCustomAttribute<DBTableAttribute>()?.Name ?? typeof(T).Name.ToLower();
 
 
-            sql.Append($"INSERT INTO {_pGManager.PGConnectionBuilder.Schema}.{tableName}");
+            sql.Append($"INSERT INTO {_pGManager.MySQLConnectionBuilder.Schema}.{tableName}");
 
             List<PropertyInfo> propertyInfos = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance)
                 .Where(d => d.PropertyType == typeof(string) || d.PropertyType.IsValueType || d.PropertyType.IsAssignableTo(typeof(IEnumerable)))
@@ -788,7 +788,7 @@ namespace MyORMForMySQL.Objects
 
             string tableName = typeof(T).GetCustomAttribute<DBTableAttribute>()?.Name ?? typeof(T).Name.ToLower();
 
-            sql.Append($"UPDATE {_pGManager.PGConnectionBuilder.Schema}.{tableName} SET ");
+            sql.Append($"UPDATE {_pGManager.MySQLConnectionBuilder.Schema}.{tableName} SET ");
 
             List<PropertyInfo> fields = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance)
                 .Where(d => d.GetCustomAttribute<DBIgnoreAttribute>() == null)
@@ -1040,7 +1040,7 @@ namespace MyORMForMySQL.Objects
 
             string tableName = typeof(T).GetCustomAttribute<DBTableAttribute>()?.Name ?? typeof(T).Name.ToLower();
 
-            sql.Append($"DELETE FROM {_pGManager.PGConnectionBuilder.Schema}.{tableName} WHERE");
+            sql.Append($"DELETE FROM {_pGManager.MySQLConnectionBuilder.Schema}.{tableName} WHERE");
 
             List<PropertyInfo> keys = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance)
                 .Where(d => d.GetCustomAttribute<DBIgnoreAttribute>() == null)
@@ -1156,7 +1156,7 @@ namespace MyORMForMySQL.Objects
             string colName = key.GetCustomAttribute<DBColumnAttribute>()?.Name ?? key.Name.ToLower();
 
 
-            string sql = $"SELECT * FROM {_pGManager.PGConnectionBuilder.Schema}.{tableName} WHERE {colName} in ";
+            string sql = $"SELECT * FROM {_pGManager.MySQLConnectionBuilder.Schema}.{tableName} WHERE {colName} in ";
 
 
             MySQLCollection<T> result = new MySQLCollection<T>(_pGManager, _context);
