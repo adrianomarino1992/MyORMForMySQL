@@ -2,15 +2,6 @@
   "version": 3,
   "targets": {
     "net6.0": {
-      "Adr.MyORM/1.0.1": {
-        "type": "package",
-        "compile": {
-          "lib/net6.0/MyORM.dll": {}
-        },
-        "runtime": {
-          "lib/net6.0/MyORM.dll": {}
-        }
-      },
       "BouncyCastle.NetCore/1.8.5": {
         "type": "package",
         "compile": {
@@ -283,24 +274,20 @@
             "rid": "win"
           }
         }
+      },
+      "MyORM/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v6.0",
+        "compile": {
+          "bin/placeholder/MyORM.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/MyORM.dll": {}
+        }
       }
     }
   },
   "libraries": {
-    "Adr.MyORM/1.0.1": {
-      "sha512": "BYnZYOAq1c9xYZJjD+Nj1E4dDX+tzLdJFYps1bgSV3p+JBQ08Dnusw9KDYET/C4l9Ek0B2LnsnQZDyjl1stNSA==",
-      "type": "package",
-      "path": "adr.myorm/1.0.1",
-      "files": [
-        ".nupkg.metadata",
-        ".signature.p7s",
-        "adr.myorm.1.0.1.nupkg.sha512",
-        "adr.myorm.nuspec",
-        "lib/net6.0/MyORM.deps.json",
-        "lib/net6.0/MyORM.dll",
-        "lib/net6.0/MyORM.pdb"
-      ]
-    },
     "BouncyCastle.NetCore/1.8.5": {
       "sha512": "6uxsQw2UXrt82VQAWC2td3oBSJjUZ3P4u4DliagB8wf67KsU53V8sW9xwdF+IwZOOZFR0TCZuv/YKZ2BlrfAag==",
       "type": "package",
@@ -868,11 +855,16 @@
         "useSharedDesignerContext.txt",
         "version.txt"
       ]
+    },
+    "MyORM/1.0.0": {
+      "type": "project",
+      "path": "../MyORM/MyORM.csproj",
+      "msbuildProject": "../MyORM/MyORM.csproj"
     }
   },
   "projectFileDependencyGroups": {
     "net6.0": [
-      "Adr.MyORM >= 1.0.1",
+      "MyORM >= 1.0.0",
       "MySql.Data >= 8.0.28"
     ]
   },
@@ -912,7 +904,11 @@
       "frameworks": {
         "net6.0": {
           "targetAlias": "net6.0",
-          "projectReferences": {}
+          "projectReferences": {
+            "C:\\Users\\LuisDev\\Desktop\\MyORM\\MyORM\\MyORM\\MyORM.csproj": {
+              "projectPath": "C:\\Users\\LuisDev\\Desktop\\MyORM\\MyORM\\MyORM\\MyORM.csproj"
+            }
+          }
         }
       },
       "warningProperties": {
@@ -925,10 +921,6 @@
       "net6.0": {
         "targetAlias": "net6.0",
         "dependencies": {
-          "Adr.MyORM": {
-            "target": "Package",
-            "version": "[1.0.1, )"
-          },
           "MySql.Data": {
             "target": "Package",
             "version": "[8.0.28, )"

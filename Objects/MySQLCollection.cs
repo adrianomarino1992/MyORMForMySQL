@@ -10,6 +10,7 @@ using System.Data;
 using MyORM.Interfaces;
 using MyORM.Attributes;
 using MyORM.Exceptions;
+using MyORM;
 using static MyORMForMySQL.Helpers.MySQLCollectionLinq;
 using System.Collections;
 
@@ -23,7 +24,7 @@ namespace MyORMForMySQL.Objects
 
         protected List<(PropertyInfo, string)> _subTypes;
 
-        protected MySQLManager _pGManager;
+        protected MySQLManager _mySQLManager;
 
 #pragma warning disable //sql is generated in runtime
         public MySQLCollection(MySQLManager manager, MySQLContext context)
@@ -31,7 +32,7 @@ namespace MyORMForMySQL.Objects
 #pragma warning disable
 
             _context = context;
-            _pGManager = manager;
+            _mySQLManager = manager;
             _subTypes = new List<(PropertyInfo, string)>();
         }
 
@@ -42,7 +43,7 @@ namespace MyORMForMySQL.Objects
 
         public IQueryableCollection<T> Query<TResult>(Expression<Func<T, TResult>> expression)
         {
-            MySQLCollection<T> result = new MySQLCollection<T>(_pGManager, _context);
+            MySQLCollection<T> result = new MySQLCollection<T>(_mySQLManager, _context);
 
             IEnumerable<(ExpressionType?, Expression?)> exs = SplitInBinaryExpressions(null, expression.Body);
 
@@ -76,7 +77,7 @@ namespace MyORMForMySQL.Objects
 
         public IQueryableCollection<T> And<TResult>(Expression<Func<T, TResult>> expression)
         {
-            MySQLCollection<T> result = new MySQLCollection<T>(_pGManager, _context);            
+            MySQLCollection<T> result = new MySQLCollection<T>(_mySQLManager, _context);            
 
             IEnumerable<(ExpressionType?, Expression?)> exs = SplitInBinaryExpressions(null, expression.Body);
 
@@ -97,7 +98,7 @@ namespace MyORMForMySQL.Objects
 
         public IQueryableCollection<T> Or<TResult>(Expression<Func<T, TResult>> expression)
         {
-            MySQLCollection<T> result = new MySQLCollection<T>(_pGManager, _context);            
+            MySQLCollection<T> result = new MySQLCollection<T>(_mySQLManager, _context);            
 
             IEnumerable<(ExpressionType?, Expression?)> exs = SplitInBinaryExpressions(null, expression.Body);
 
@@ -117,7 +118,7 @@ namespace MyORMForMySQL.Objects
 
         public IQueryableCollection<T> OrderBy<TResult>(Expression<Func<T, TResult>> expression)
         {
-            MySQLCollection<T> result = new MySQLCollection<T>(_pGManager, _context);
+            MySQLCollection<T> result = new MySQLCollection<T>(_mySQLManager, _context);
 
             MemberExpression? lambdaExpression = expression.Body as MemberExpression;
 
@@ -162,7 +163,7 @@ namespace MyORMForMySQL.Objects
 
         public IQueryableCollection<T> Limit(int limit)
         {
-            MySQLCollection<T> result = new MySQLCollection<T>(_pGManager, _context);
+            MySQLCollection<T> result = new MySQLCollection<T>(_mySQLManager, _context);
 
             _sql = $" {_sql} LIMIT {limit} ";
 
@@ -178,7 +179,7 @@ namespace MyORMForMySQL.Objects
 
         public IQueryableCollection<T> OffSet(int offSet)
         {
-            MySQLCollection<T> result = new MySQLCollection<T>(_pGManager, _context);
+            MySQLCollection<T> result = new MySQLCollection<T>(_mySQLManager, _context);
 
             _sql = $" {_sql} OFFSET {offSet} ";
 
@@ -203,11 +204,11 @@ namespace MyORMForMySQL.Objects
         {
             string tableName = typeof(T).GetCustomAttribute<DBColumnAttribute>()?.Name ?? typeof(T).Name;
 
-            string schema = _pGManager.MySQLConnectionBuilder.Schema;
+            string schema = _mySQLManager.MySQLConnectionBuilder.Schema;
 
             string query = $" SELECT COUNT(*)::integer FROM {schema}.{tableName} ";
 
-            return _pGManager.ExecuteScalar<int>(query);
+            return _mySQLManager.ExecuteScalar<int>(query);
         }
 
         public async Task<IEnumerable<T>> RunAsync()
@@ -219,7 +220,7 @@ namespace MyORMForMySQL.Objects
         public IEnumerable<T> Run()
         {
             string tableName = typeof(T).GetCustomAttribute<DBColumnAttribute>()?.Name ?? typeof(T).Name;
-            string schema = _pGManager.MySQLConnectionBuilder.Schema;
+            string schema = _mySQLManager.MySQLConnectionBuilder.Schema;
 
             string query = $" SELECT * FROM {schema}.{tableName} " + _sql;
 
@@ -233,10 +234,27 @@ namespace MyORMForMySQL.Objects
                 {
                     StringBuilder tQuery = new StringBuilder(sql);
 
+                    bool isArray = info.PropertyType.IsAssignableTo(typeof(IEnumerable)) && info.PropertyType != typeof(string);
+
+                    Type arrType = isArray ? (info.PropertyType.GetElementType() ?? info.PropertyType.GetGenericArguments()[0]) : info.PropertyType;
+
                     PropertyInfo? foreignKey = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance)
                                     .Where(d => d.GetCustomAttribute<DBIgnoreAttribute>() == null)
                                     .Where(d => d.PropertyType.IsValueType)
-                                    .Where(d => d.Name == $"{info.Name}Id").FirstOrDefault();
+                                    .Where(d => d.Name == $"{info.PropertyType.Name}Id").FirstOrDefault();
+
+                    PropertyInfo? primaryKey = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                                    .Where(d => d.GetCustomAttribute<DBIgnoreAttribute>() == null)
+                                    .Where(d => d.PropertyType.IsValueType)
+                                    .Where(d => d.GetCustomAttribute<DBPrimaryKeyAttribute>() != null).FirstOrDefault();
+
+                    if (isArray)
+                    {
+                        foreignKey = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                                    .Where(d => d.GetCustomAttribute<DBIgnoreAttribute>() == null)
+                                    .Where(d => d.PropertyType.IsValueType)
+                                    .Where(d => d.GetCustomAttribute<DBPrimaryKeyAttribute>() != null).FirstOrDefault();
+                    }
 
                     if (foreignKey == null)
                         continue;
@@ -264,7 +282,7 @@ namespace MyORMForMySQL.Objects
 
                     Type tG = typeof(List<>);
 
-                    IList sList = _BuildEnumerable(info.PropertyType, _pGManager.GetDataSet(tQuery.ToString())) ?? Activator.CreateInstance(tG.MakeGenericType(info.PropertyType)) as IList;
+                    IList sList = _BuildEnumerable(info.PropertyType, _mySQLManager.GetDataSet(tQuery.ToString())) ?? Activator.CreateInstance(tG.MakeGenericType(info.PropertyType)) as IList;
 
                     PropertyInfo? key = info.PropertyType.GetProperties(BindingFlags.Public | BindingFlags.Instance)
                                   .Where(d => d.GetCustomAttribute<DBIgnoreAttribute>() == null)
@@ -276,12 +294,56 @@ namespace MyORMForMySQL.Objects
 
                     foreach (T rO in ts)
                     {
+                        int idx = 0;
+
                         foreach (var sO in sList)
                         {
-                            if (foreignKey.GetValue(rO).ToString() == key.GetValue(sO).ToString())
+                            if (info.IsArray())
                             {
-                                info.SetValue(rO, sO);
-                                break;
+                                key = info.PropertyType.GetArrayElementType().GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                                          .Where(d => d.GetCustomAttribute<DBIgnoreAttribute>() == null)
+                                          .Where(d => d.GetCustomAttribute<DBForeignKeyAttribute>() != null && d.Name == $"{typeof(T).Name}Id")
+                                          .Where(d => d.PropertyType.IsValueType)
+                                          .FirstOrDefault();
+
+                                if (primaryKey.GetValue(rO).ToString() == key.GetValue(sO).ToString())
+                                {
+                                    if (info.PropertyType.GetElementType() != null)
+                                    {
+                                        Array arr = (Array)info.GetValue(rO);
+
+                                        if (arr == null)
+                                        {
+                                            arr = Array.CreateInstance(info.PropertyType.GetElementType(), sList.Count);
+                                            info.SetValue(rO, arr);
+                                        }
+
+                                        arr.SetValue(sO, idx);
+                                        idx++;
+
+                                    }
+                                    else
+                                    {
+                                        IList ilist = (IList)info.GetValue(rO);
+
+                                        if (ilist == null)
+                                        {
+                                            ilist = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(info.PropertyType.GetGenericArguments()[0]));
+                                            info.SetValue(rO, ilist);
+                                        }
+                                        ilist.Add(sO);
+                                    }
+
+                                }
+                            }
+                            else
+                            {
+
+                                if (foreignKey.GetValue(rO).ToString() == key.GetValue(sO).ToString())
+                                {
+                                    info.SetValue(rO, sO);
+                                    break;
+                                }
                             }
                         }
                     }
@@ -303,7 +365,7 @@ namespace MyORMForMySQL.Objects
 
         public IEnumerable<T> Run(string sql)
         {
-            DataSet dt = _pGManager.GetDataSet(sql);
+            DataSet dt = _mySQLManager.GetDataSet(sql);
 
             return _BuildEnumerable(typeof(T), dt) as IEnumerable<T> ?? new List<T>();
         }
@@ -311,7 +373,11 @@ namespace MyORMForMySQL.Objects
 
         private IList? _BuildEnumerable(Type type, DataSet dt)
         {
-            IList? list = Activator.CreateInstance(typeof(List<>).MakeGenericType(type)) as IList;
+            bool isArray = type.IsAssignableTo(typeof(IEnumerable)) && type != typeof(string);
+
+            Type arrType = isArray ? (type.GetElementType() ?? type.GetGenericArguments()[0]) : type;
+
+            IList? list = Activator.CreateInstance(typeof(List<>).MakeGenericType(arrType)) as IList;
 
             if (dt == null)
                 return list;
@@ -321,7 +387,7 @@ namespace MyORMForMySQL.Objects
 
             foreach (DataRow row in dt.Tables[0].Rows)
             {
-                var it = Activator.CreateInstance(type);
+                var it = Activator.CreateInstance(arrType);
 
                 if (it == null)
                     continue;
@@ -508,14 +574,14 @@ namespace MyORMForMySQL.Objects
             if (obj == null)
                 throw new global::MyORM.Exceptions.ArgumentNullException($"The param {typeof(T)} {nameof(obj)} is null");
 
-            _AddChildrenObjects(obj);
+            _AddOrUpdateChildrenObjects(obj);
 
             StringBuilder sql = new StringBuilder();
 
             string tableName = typeof(T).GetCustomAttribute<DBTableAttribute>()?.Name ?? typeof(T).Name.ToLower();
 
 
-            sql.Append($"INSERT INTO {_pGManager.MySQLConnectionBuilder.Schema}.{tableName}");
+            sql.Append($"INSERT INTO {_mySQLManager.MySQLConnectionBuilder.Schema}.{tableName}");
 
             List<PropertyInfo> propertyInfos = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance)
                 .Where(d => d.PropertyType == typeof(string) || d.PropertyType.IsValueType || d.PropertyType.IsAssignableTo(typeof(IEnumerable)))
@@ -651,7 +717,8 @@ namespace MyORMForMySQL.Objects
                         bool isValueType = (!arrayType.IsClass) || arrayType == typeof(string);
 
                         if (!isValueType)
-                            continue;
+                            goto QUERY_OVER;
+
                     }
 
                     IEnumerable? v = c.GetValue(obj) as IEnumerable;
@@ -668,8 +735,13 @@ namespace MyORMForMySQL.Objects
 
                 }
 
+            QUERY_OVER:
+
                 if (i == propertyInfos.Count - 1)
                 {
+                    if (sql[sql.Length - 2] == ',')
+                        sql.Remove(sql.Length - 2, 1);
+
                     sql.Append(" ) ");
                 }
                 else
@@ -693,13 +765,15 @@ namespace MyORMForMySQL.Objects
                 if (propKey.PropertyType == typeof(int))
                 {
 
-                    propKey.SetValue(obj, _pGManager.ExecuteScalar<int>(sql.ToString()));
+                    propKey.SetValue(obj, _mySQLManager.ExecuteScalar<int>(sql.ToString()));
 
                 }
                 else if (propKey.PropertyType == typeof(long))
                 {
-                    propKey.SetValue(obj, _pGManager.ExecuteScalar<long>(sql.ToString()));
+                    propKey.SetValue(obj, _mySQLManager.ExecuteScalar<long>(sql.ToString()));
                 }
+
+                _AddOrUpdateChildrenObjects(obj);
             }
 
 
@@ -710,7 +784,7 @@ namespace MyORMForMySQL.Objects
 
         }
 
-        private void _AddChildrenObjects(T obj)
+        private void _AddOrUpdateChildrenObjects(T obj)
         {
 
             List<PropertyInfo> propertyInfos = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance)
@@ -724,8 +798,24 @@ namespace MyORMForMySQL.Objects
                 if (subItem.GetValue(obj) == null)
                     continue;
 
-                PropertyInfo propKey = subItem.PropertyType.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+
+                bool isArray = subItem.PropertyType.IsAssignableTo(typeof(IEnumerable)) && subItem.PropertyType != typeof(string);
+
+                Type arrType = isArray ? (subItem.PropertyType.GetElementType() ?? subItem.PropertyType.GetGenericArguments()[0]) : null;
+
+                Type objType = arrType ?? subItem.PropertyType;
+
+
+                PropertyInfo propKey = objType.GetProperties(BindingFlags.Public | BindingFlags.Instance)
                 .Where(u => u.GetCustomAttribute<DBPrimaryKeyAttribute>() != null)
+                .FirstOrDefault();
+
+                PropertyInfo superPropKey = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                .Where(u => u.GetCustomAttribute<DBPrimaryKeyAttribute>() != null)
+                .FirstOrDefault();
+
+                PropertyInfo objForeignKey = objType.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                .Where(u => u.GetCustomAttribute<DBForeignKeyAttribute>() != null && u.Name == $"{typeof(T).Name}Id")
                 .FirstOrDefault();
 
                 if (propKey == null)
@@ -734,7 +824,7 @@ namespace MyORMForMySQL.Objects
 
                 PropertyInfo set = _context.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance)
                     .Where(d => d.PropertyType.GetInterfaces().Contains(typeof(IEntityCollection)))
-                    .Where(d => d.PropertyType.GenericTypeArguments.Contains(subItem.PropertyType)).FirstOrDefault();
+                    .Where(d => d.PropertyType.GenericTypeArguments.Contains(objType)).FirstOrDefault();
 
 
                 if (set == null)
@@ -742,37 +832,86 @@ namespace MyORMForMySQL.Objects
 
                 string methodName = null;
 
-                try
+                int minTimes = 1;
+
+
+                IEnumerator enumerator = null;
+
+                if (isArray)
                 {
-                    methodName = Convert.ToInt64(propKey.GetValue(subItem.GetValue(obj)).ToString()) <= 0 ? "Add" : "Update";
+                    minTimes = 0;
 
+                    enumerator = (subItem.GetValue(obj) as IEnumerable).GetEnumerator();
+
+                    enumerator.Reset();
+
+                    while (enumerator.MoveNext())
+                    {
+                        minTimes++;
+                    }
+
+                    enumerator.Reset();
+
+                    enumerator.MoveNext();
                 }
-                catch (Exception ex)
+
+                for (int i = 0; i < minTimes; i++)
                 {
-                    throw new InvalidConstraintException($"Can not get key value from {subItem.PropertyType}.{propKey.Name} property");
+                    object objToSave = minTimes == 1 ? subItem.GetValue(obj) : null;
+
+                    if (isArray && minTimes >= 1)
+                    {
+                        objToSave = enumerator.Current;
+
+                        if (!enumerator.MoveNext())
+                        {
+                            enumerator.Reset();
+                        }
+                    }
+
+                    try
+                    {
+                        methodName = Convert.ToInt64(propKey.GetValue(objToSave).ToString()) <= 0 ? "Add" : "Update";
+
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new InvalidConstraintException($"Can not get key value from {objType}.{propKey.Name} property");
+                    }
+
+                    if (methodName == "Update" && superPropKey != null && objForeignKey != null && objForeignKey.SetMethod != null)
+                    {
+                        if (superPropKey.PropertyType != objForeignKey.PropertyType)
+                            throw new InvalidConstraintException($"The type of foreign key {objType.Name}.{objForeignKey.Name} must be the same of {typeof(T).Name}.{superPropKey.Name}");
+
+                        objForeignKey.SetValue(objToSave, superPropKey.GetValue(obj));
+                    }
+
+                    MethodInfo? methodToInvoke = set.PropertyType.GetMethod(methodName, new Type[] { objType });
+
+                    if (methodToInvoke == null)
+                        continue;
+
+
+                    methodToInvoke.Invoke(set.GetValue(_context), new object[] { objToSave });
+
+                    if (!isArray)
+                    {
+                        PropertyInfo foreignKey = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                                    .Where(u => u.Name == $"{subItem.Name}Id")
+                                    .FirstOrDefault();
+
+                        if (foreignKey == null || foreignKey.SetMethod == null)
+                            continue;
+
+                        foreignKey.SetValue(obj, propKey.GetValue(subItem.GetValue(obj)));
+                    }
                 }
 
-                MethodInfo? methodToInvoke = set.PropertyType.GetMethod(methodName, new Type[] { subItem.PropertyType });
 
-                if (methodToInvoke == null)
-                    continue;
-
-
-                methodToInvoke.Invoke(set.GetValue(_context), new object[] { subItem.GetValue(obj) });
-
-
-                PropertyInfo foreignKey = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                            .Where(u => u.Name == $"{subItem.Name}Id")
-                            .FirstOrDefault();
-
-                if (foreignKey == null || foreignKey.SetMethod == null)
-                    continue;
-
-                foreignKey.SetValue(obj, propKey.GetValue(subItem.GetValue(obj)));
 
             }
         }
-
 
         public async Task UpdateAsync(T obj)
         {
@@ -788,7 +927,7 @@ namespace MyORMForMySQL.Objects
 
             string tableName = typeof(T).GetCustomAttribute<DBTableAttribute>()?.Name ?? typeof(T).Name.ToLower();
 
-            sql.Append($"UPDATE {_pGManager.MySQLConnectionBuilder.Schema}.{tableName} SET ");
+            sql.Append($"UPDATE {_mySQLManager.MySQLConnectionBuilder.Schema}.{tableName} SET ");
 
             List<PropertyInfo> fields = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance)
                 .Where(d => d.GetCustomAttribute<DBIgnoreAttribute>() == null)
@@ -973,7 +1112,7 @@ namespace MyORMForMySQL.Objects
 
             }
 
-            _pGManager.ExecuteNonQuery(sql.ToString());
+            _mySQLManager.ExecuteNonQuery(sql.ToString());
 
 
             List<PropertyInfo> childrenObjects = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance)
@@ -1040,7 +1179,7 @@ namespace MyORMForMySQL.Objects
 
             string tableName = typeof(T).GetCustomAttribute<DBTableAttribute>()?.Name ?? typeof(T).Name.ToLower();
 
-            sql.Append($"DELETE FROM {_pGManager.MySQLConnectionBuilder.Schema}.{tableName} WHERE");
+            sql.Append($"DELETE FROM {_mySQLManager.MySQLConnectionBuilder.Schema}.{tableName} WHERE");
 
             List<PropertyInfo> keys = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance)
                 .Where(d => d.GetCustomAttribute<DBIgnoreAttribute>() == null)
@@ -1103,7 +1242,7 @@ namespace MyORMForMySQL.Objects
 
             }
 
-            _pGManager.ExecuteNonQuery(sql.ToString());
+            _mySQLManager.ExecuteNonQuery(sql.ToString());
         }
 
         public IQueryableCollection<T> Join<TResult>(Expression<Func<T, TResult>> expression)
@@ -1134,32 +1273,43 @@ namespace MyORMForMySQL.Objects
 
             }
 
-            PropertyInfo? foreignKey = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                .Where(d => d.GetCustomAttribute<DBIgnoreAttribute>() == null)
-                .Where(d => d.PropertyType.IsValueType)
-                .Where(d => d.Name == $"{member.Name}Id").FirstOrDefault();
-
-            if (foreignKey == null)
-            {
-                throw new NoEntityMappedException($"No one foreign key was mapped for {member.PropertyType.Name}");
-            }
 
 
-            string tableName = member.PropertyType.GetCustomAttribute<DBTableAttribute>()?.Name ?? member.PropertyType.Name.ToLower();
+            bool isArray = member.PropertyType.IsAssignableTo(typeof(IEnumerable)) && member.PropertyType != typeof(string);
 
-            PropertyInfo? key = member.PropertyType.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            Type arrType = isArray ? (member.PropertyType.GetElementType() ?? member.PropertyType.GetGenericArguments()[0]) : member.PropertyType;
+
+            string tableName = arrType.GetCustomAttribute<DBTableAttribute>()?.Name ?? arrType.Name.ToLower();
+
+            PropertyInfo? key = arrType.GetProperties(BindingFlags.Public | BindingFlags.Instance)
                .Where(d => d.GetCustomAttribute<DBIgnoreAttribute>() == null)
                .Where(d => d.GetCustomAttribute<DBPrimaryKeyAttribute>() != null)
                .Where(d => d.PropertyType.IsValueType)
                .FirstOrDefault();
 
+            if (isArray)
+            {
+                key = arrType.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+               .Where(d => d.GetCustomAttribute<DBIgnoreAttribute>() == null)
+               .Where(d => d.GetCustomAttribute<DBForeignKeyAttribute>() != null && d.Name == $"{typeof(T).Name}Id")
+               .Where(d => d.PropertyType.IsValueType)
+               .FirstOrDefault();
+            }
+
+
+            if (key == null)
+            {
+                throw new NoEntityMappedException($"No one foreign key was mapped for {member.PropertyType.Name}");
+            }
+
+
             string colName = key.GetCustomAttribute<DBColumnAttribute>()?.Name ?? key.Name.ToLower();
 
 
-            string sql = $"SELECT * FROM {_pGManager.MySQLConnectionBuilder.Schema}.{tableName} WHERE {colName} in ";
+            string sql = $"SELECT * FROM {_mySQLManager.MySQLConnectionBuilder.Schema}.{tableName} WHERE {colName} in ";
 
 
-            MySQLCollection<T> result = new MySQLCollection<T>(_pGManager, _context);
+            MySQLCollection<T> result = new MySQLCollection<T>(_mySQLManager, _context);
 
             result._sql = _sql;
 
