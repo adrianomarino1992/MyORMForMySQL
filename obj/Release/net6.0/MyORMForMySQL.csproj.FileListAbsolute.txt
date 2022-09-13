@@ -1,6 +1,5 @@
 C:\Users\LuisDev\Desktop\MyORM\MyORM\MyORMForMySQL\bin\Release\net6.0\MyORMForMySQL.deps.json
 C:\Users\LuisDev\Desktop\MyORM\MyORM\MyORMForMySQL\bin\Release\net6.0\MyORMForMySQL.dll
-C:\Users\LuisDev\Desktop\MyORM\MyORM\MyORMForMySQL\bin\Release\net6.0\ref\MyORMForMySQL.dll
 C:\Users\LuisDev\Desktop\MyORM\MyORM\MyORMForMySQL\bin\Release\net6.0\MyORMForMySQL.pdb
 C:\Users\LuisDev\Desktop\MyORM\MyORM\MyORMForMySQL\obj\Release\net6.0\MyORMForMySQL.GeneratedMSBuildEditorConfig.editorconfig
 C:\Users\LuisDev\Desktop\MyORM\MyORM\MyORMForMySQL\obj\Release\net6.0\MyORMForMySQL.AssemblyInfoInputs.cache
@@ -10,3 +9,7 @@ C:\Users\LuisDev\Desktop\MyORM\MyORM\MyORMForMySQL\obj\Release\net6.0\MyORMForMy
 C:\Users\LuisDev\Desktop\MyORM\MyORM\MyORMForMySQL\obj\Release\net6.0\ref\MyORMForMySQL.dll
 C:\Users\LuisDev\Desktop\MyORM\MyORM\MyORMForMySQL\obj\Release\net6.0\MyORMForMySQL.pdb
 C:\Users\LuisDev\Desktop\MyORM\MyORM\MyORMForMySQL\obj\Release\net6.0\MyORMForMySQL.csproj.AssemblyReference.cache
+C:\Users\LuisDev\Desktop\MyORM\MyORM\MyORMForMySQL\bin\Release\net6.0\MyORM.dll
+C:\Users\LuisDev\Desktop\MyORM\MyORM\MyORMForMySQL\bin\Release\net6.0\MyORM.pdb
+C:\Users\LuisDev\Desktop\MyORM\MyORM\MyORMForMySQL\obj\Release\net6.0\MyORMForMySQL.csproj.CopyComplete
+C:\Users\LuisDev\Desktop\MyORM\MyORM\MyORMForMySQL\obj\Release\net6.0\refint\MyORMForMySQL.dll

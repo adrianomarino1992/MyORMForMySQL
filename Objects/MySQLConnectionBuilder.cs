@@ -13,15 +13,15 @@ namespace MyORMForMySQL.Objects
 {
     public class MySQLConnectionBuilder : IDBConnectionBuilder
     {
-        public MySQLConnectionBuilder(string user, string password, int port = 3306, string host = "127.0.0.1", string dataBase = "mysql", string schema = "mysql", ProviderType providerType = ProviderType.MYSQL)
+        public MySQLConnectionBuilder(string user, string password, int port = 3306, string host = "127.0.0.1", string dataBase = "mysql")
         {
             User = user;
             Password = password;
             Port = port;
             Host = host;
             DataBase = dataBase;
-            Schema = schema;
-            ProviderType = providerType;
+            Schema = dataBase;
+            ProviderType = ProviderType.MYSQL;
         }
 
         public string User { get; set; }

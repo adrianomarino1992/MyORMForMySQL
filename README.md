@@ -7,19 +7,19 @@ MyORMForMySQL is a implementation of MyORM that uses MySQL as database.
 .NET CLI
 
 ```bash
-dotnet add package Adr.MyORMForMySQL --version 2.0.0
+dotnet add package Adr.MyORMForMySQL --version 2.0.1
 ```
 
 Nuget package manager
 
 ```bash
-PM> Install-Package Adr.MyORMForMySQL -Version 2.0.0
+PM> Install-Package Adr.MyORMForMySQL -Version 2.0.1
 ```
 
 packageReference
 
 ```bash
-<PackageReference Include="Adr.MyORMForMySQL" Version="2.0.0" />
+<PackageReference Include="Adr.MyORMForMySQL" Version="2.0.1" />
 ```
 
 ## Usage

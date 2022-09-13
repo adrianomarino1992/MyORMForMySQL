@@ -77,7 +77,7 @@ namespace MyORMForMySQL.Objects
 
         public IQueryableCollection<T> And<TResult>(Expression<Func<T, TResult>> expression)
         {
-            MySQLCollection<T> result = new MySQLCollection<T>(_mySQLManager, _context);            
+            MySQLCollection<T> result = new MySQLCollection<T>(_mySQLManager, _context);
 
             IEnumerable<(ExpressionType?, Expression?)> exs = SplitInBinaryExpressions(null, expression.Body);
 
@@ -98,7 +98,7 @@ namespace MyORMForMySQL.Objects
 
         public IQueryableCollection<T> Or<TResult>(Expression<Func<T, TResult>> expression)
         {
-            MySQLCollection<T> result = new MySQLCollection<T>(_mySQLManager, _context);            
+            MySQLCollection<T> result = new MySQLCollection<T>(_mySQLManager, _context);
 
             IEnumerable<(ExpressionType?, Expression?)> exs = SplitInBinaryExpressions(null, expression.Body);
 
@@ -119,6 +119,9 @@ namespace MyORMForMySQL.Objects
         public IQueryableCollection<T> OrderBy<TResult>(Expression<Func<T, TResult>> expression)
         {
             MySQLCollection<T> result = new MySQLCollection<T>(_mySQLManager, _context);
+
+            if (_sql.Contains("ORDER BY"))
+                return this;
 
             MemberExpression? lambdaExpression = expression.Body as MemberExpression;
 
@@ -165,6 +168,9 @@ namespace MyORMForMySQL.Objects
         {
             MySQLCollection<T> result = new MySQLCollection<T>(_mySQLManager, _context);
 
+            if (_sql.Contains("LIMIT"))
+                return this;
+
             _sql = $" {_sql} LIMIT {limit} ";
 
             result._sql = _sql;
@@ -180,6 +186,9 @@ namespace MyORMForMySQL.Objects
         public IQueryableCollection<T> OffSet(int offSet)
         {
             MySQLCollection<T> result = new MySQLCollection<T>(_mySQLManager, _context);
+
+            if (_sql.Contains("OFFSET"))
+                return this;
 
             _sql = $" {_sql} OFFSET {offSet} ";
 
@@ -206,9 +215,9 @@ namespace MyORMForMySQL.Objects
 
             string schema = _mySQLManager.MySQLConnectionBuilder.Schema;
 
-            string query = $" SELECT COUNT(*)::integer FROM {schema}.{tableName} ";
+            string query = $" SELECT COUNT(*) FROM {schema}.{tableName} ";
 
-            return _mySQLManager.ExecuteScalar<int>(query);
+            return (int)_mySQLManager.ExecuteScalar<long>(query);
         }
 
         public async Task<IEnumerable<T>> RunAsync()
@@ -434,14 +443,14 @@ namespace MyORMForMySQL.Objects
 
                             foreach (var enums in Enum.GetValues(prop.PropertyType))
                             {
-                                if((int)enums == (int)row[colName])
+                                if ((int)enums == (int)row[colName])
                                 {
                                     prop.SetValue(it, row[colName]);
                                     goto END;
                                 }
 
                             }
-                            END:
+                        END:
                             continue;
                         }
                     }
@@ -574,7 +583,7 @@ namespace MyORMForMySQL.Objects
             if (obj == null)
                 throw new global::MyORM.Exceptions.ArgumentNullException($"The param {typeof(T)} {nameof(obj)} is null");
 
-            _AddOrUpdateChildrenObjects(obj);
+            _AddOrUpdateChildrenObjects(obj, false);
 
             StringBuilder sql = new StringBuilder();
 
@@ -690,7 +699,8 @@ namespace MyORMForMySQL.Objects
                 {
                     object? v = c.GetValue(obj);
 
-                    sql.Append(v == null ? "null" : $"{v?.ToString()?.Trim()}");
+                    sql.Append(v == null ? "null" : $"{v?.ToString()?.Replace(',', '.').Trim()}");
+
                 }
 
                 if (c.PropertyType == typeof(DateTime))
@@ -707,6 +717,8 @@ namespace MyORMForMySQL.Objects
                     }
                 }
 
+                bool ignoreValue = false;
+
                 if (isArray)
                 {
 
@@ -717,7 +729,10 @@ namespace MyORMForMySQL.Objects
                         bool isValueType = (!arrayType.IsClass) || arrayType == typeof(string);
 
                         if (!isValueType)
+                        {
+                            ignoreValue = true;
                             goto QUERY_OVER;
+                        }
 
                     }
 
@@ -746,7 +761,8 @@ namespace MyORMForMySQL.Objects
                 }
                 else
                 {
-                    sql.Append(" , ");
+                    if (!ignoreValue)
+                        sql.Append(" , ");
                 }
 
 
@@ -784,7 +800,7 @@ namespace MyORMForMySQL.Objects
 
         }
 
-        private void _AddOrUpdateChildrenObjects(T obj)
+        private void _AddOrUpdateChildrenObjects(T obj, bool ignoreForeignKeyCheck = true)
         {
 
             List<PropertyInfo> propertyInfos = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance)
@@ -869,6 +885,22 @@ namespace MyORMForMySQL.Objects
                         }
                     }
 
+
+                    if (!ignoreForeignKeyCheck)
+                    {
+
+
+                        if (superPropKey != null && objForeignKey != null)
+                        {
+                            var pkValue = superPropKey.GetValue(obj);
+                            var fkValue = objForeignKey.GetValue(objToSave);
+
+                            if ((long)pkValue == 0 || (long)fkValue == 0)
+                            {
+                                continue;
+                            }
+                        }
+                    }
                     try
                     {
                         methodName = Convert.ToInt64(propKey.GetValue(objToSave).ToString()) <= 0 ? "Add" : "Update";
@@ -879,7 +911,7 @@ namespace MyORMForMySQL.Objects
                         throw new InvalidConstraintException($"Can not get key value from {objType}.{propKey.Name} property");
                     }
 
-                    if (methodName == "Update" && superPropKey != null && objForeignKey != null && objForeignKey.SetMethod != null)
+                    if (superPropKey != null && objForeignKey != null && objForeignKey.SetMethod != null)
                     {
                         if (superPropKey.PropertyType != objForeignKey.PropertyType)
                             throw new InvalidConstraintException($"The type of foreign key {objType.Name}.{objForeignKey.Name} must be the same of {typeof(T).Name}.{superPropKey.Name}");
@@ -922,6 +954,9 @@ namespace MyORMForMySQL.Objects
         {
             if (obj == null)
                 throw new global::MyORM.Exceptions.ArgumentNullException($"The param {typeof(T)} {nameof(obj)} is null");
+
+            _AddOrUpdateChildrenObjects(obj, false);
+
 
             StringBuilder sql = new StringBuilder();
 
@@ -1000,7 +1035,7 @@ namespace MyORMForMySQL.Objects
                 {
                     object? v = c.GetValue(obj);
 
-                    sql.Append(v == null ? "null" : $"{v?.ToString()?.Trim()}");
+                    sql.Append(v == null ? "null" : $"{v?.ToString()?.Replace(',', '.').Trim()}");
                 }
 
                 if (c.PropertyType == typeof(DateTime))
@@ -1121,41 +1156,7 @@ namespace MyORMForMySQL.Objects
                .ToList();
 
 
-            foreach (PropertyInfo subItem in childrenObjects)
-            {
-                if (subItem.GetValue(obj) == null)
-                    continue;
-
-                PropertyInfo propKey = subItem.PropertyType.GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                    .Where(d => d.GetCustomAttribute<DBIgnoreAttribute>() == null)
-                    .Where(d => d.GetCustomAttribute<DBPrimaryKeyAttribute>() != null).FirstOrDefault();
-
-                if (propKey == null)
-                    continue;
-
-                string methodName = null;
-
-                try
-                {
-                    methodName = Convert.ToInt64(propKey.GetValue(subItem.GetValue(obj)).ToString()) <= 0 ? "Add" : "Update";
-
-                }
-                catch (Exception ex)
-                {
-                    throw new InvalidConstraintException($"Can not get key value from {subItem.PropertyType}.{propKey.Name} property");
-                }
-
-
-                IEntityCollection collection = _context.Collection(subItem.PropertyType);
-
-                MethodInfo? set = collection.GetType().GetMethod(methodName, new Type[] { subItem.PropertyType });
-
-                if (set != null)
-                {
-                    set.Invoke(collection, new object[] { subItem.GetValue(obj) });
-                }
-
-            }
+            _AddOrUpdateChildrenObjects(obj);
 
 
 
