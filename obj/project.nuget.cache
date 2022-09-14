@@ -1,9 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "CTpiN9nSZ0Se390kOTTM3ACSwvDeE+rlL9POvHTeRFA3fS0TnpuWFdNfi8Ha7g4TqJIa+nITYwR0nGpgbGuc4w==",
+  "dgSpecHash": "TbZkTXJ6vaLRr6M32s7ado3V+hj1Io9ZdkJZZer63FQMeRfuRM94jgYGd7+AMBtPi8sKIZVWNdltvG0DG4v/Zw==",
   "success": true,
   "projectFilePath": "C:\\Users\\LuisDev\\Desktop\\MyORM\\MyORM\\MyORMForMySQL\\MyORMForMySQL.csproj",
   "expectedPackageFiles": [
+    "C:\\Users\\LuisDev\\.nuget\\packages\\adr.myorm\\3.0.0\\adr.myorm.3.0.0.nupkg.sha512",
     "C:\\Users\\LuisDev\\.nuget\\packages\\bouncycastle.netcore\\1.8.5\\bouncycastle.netcore.1.8.5.nupkg.sha512",
     "C:\\Users\\LuisDev\\.nuget\\packages\\google.protobuf\\3.14.0\\google.protobuf.3.14.0.nupkg.sha512",
     "C:\\Users\\LuisDev\\.nuget\\packages\\k4os.compression.lz4\\1.2.6\\k4os.compression.lz4.1.2.6.nupkg.sha512",
@@ -22,10 +23,7 @@
     "C:\\Users\\LuisDev\\.nuget\\packages\\system.security.permissions\\4.7.0\\system.security.permissions.4.7.0.nupkg.sha512",
     "C:\\Users\\LuisDev\\.nuget\\packages\\system.security.principal.windows\\4.7.0\\system.security.principal.windows.4.7.0.nupkg.sha512",
     "C:\\Users\\LuisDev\\.nuget\\packages\\system.text.encoding.codepages\\4.4.0\\system.text.encoding.codepages.4.4.0.nupkg.sha512",
-    "C:\\Users\\LuisDev\\.nuget\\packages\\system.windows.extensions\\4.7.0\\system.windows.extensions.4.7.0.nupkg.sha512",
-    "C:\\Users\\LuisDev\\.nuget\\packages\\microsoft.netcore.app.ref\\6.0.4\\microsoft.netcore.app.ref.6.0.4.nupkg.sha512",
-    "C:\\Users\\LuisDev\\.nuget\\packages\\microsoft.windowsdesktop.app.ref\\6.0.4\\microsoft.windowsdesktop.app.ref.6.0.4.nupkg.sha512",
-    "C:\\Users\\LuisDev\\.nuget\\packages\\microsoft.aspnetcore.app.ref\\6.0.4\\microsoft.aspnetcore.app.ref.6.0.4.nupkg.sha512"
+    "C:\\Users\\LuisDev\\.nuget\\packages\\system.windows.extensions\\4.7.0\\system.windows.extensions.4.7.0.nupkg.sha512"
   ],
   "logs": []
 }

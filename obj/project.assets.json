@@ -2,6 +2,15 @@
   "version": 3,
   "targets": {
     "net6.0": {
+      "Adr.MyORM/3.0.0": {
+        "type": "package",
+        "compile": {
+          "lib/net6.0/MyORM.dll": {}
+        },
+        "runtime": {
+          "lib/net6.0/MyORM.dll": {}
+        }
+      },
       "BouncyCastle.NetCore/1.8.5": {
         "type": "package",
         "compile": {
@@ -274,20 +283,25 @@
             "rid": "win"
           }
         }
-      },
-      "MyORM/1.0.0": {
-        "type": "project",
-        "framework": ".NETCoreApp,Version=v6.0",
-        "compile": {
-          "bin/placeholder/MyORM.dll": {}
-        },
-        "runtime": {
-          "bin/placeholder/MyORM.dll": {}
-        }
       }
     }
   },
   "libraries": {
+    "Adr.MyORM/3.0.0": {
+      "sha512": "4GB8wLsvcSs5xNNL/QpxZpAR6pi3Nxkwq3VOoaBr50xpmUOO9YWHOcqqSooq6etv73HVhm1AtpaTutio/BvLlA==",
+      "type": "package",
+      "path": "adr.myorm/3.0.0",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "README.md",
+        "adr.myorm.3.0.0.nupkg.sha512",
+        "adr.myorm.nuspec",
+        "lib/net6.0/MyORM.deps.json",
+        "lib/net6.0/MyORM.dll",
+        "lib/net6.0/MyORM.pdb"
+      ]
+    },
     "BouncyCastle.NetCore/1.8.5": {
       "sha512": "6uxsQw2UXrt82VQAWC2td3oBSJjUZ3P4u4DliagB8wf67KsU53V8sW9xwdF+IwZOOZFR0TCZuv/YKZ2BlrfAag==",
       "type": "package",
@@ -855,16 +869,11 @@
         "useSharedDesignerContext.txt",
         "version.txt"
       ]
-    },
-    "MyORM/1.0.0": {
-      "type": "project",
-      "path": "../MyORM/MyORM.csproj",
-      "msbuildProject": "../MyORM/MyORM.csproj"
     }
   },
   "projectFileDependencyGroups": {
     "net6.0": [
-      "MyORM >= 1.0.0",
+      "Adr.MyORM >= 3.0.0",
       "MySql.Data >= 8.0.28"
     ]
   },
@@ -904,11 +913,7 @@
       "frameworks": {
         "net6.0": {
           "targetAlias": "net6.0",
-          "projectReferences": {
-            "C:\\Users\\LuisDev\\Desktop\\MyORM\\MyORM\\MyORM\\MyORM.csproj": {
-              "projectPath": "C:\\Users\\LuisDev\\Desktop\\MyORM\\MyORM\\MyORM\\MyORM.csproj"
-            }
-          }
+          "projectReferences": {}
         }
       },
       "warningProperties": {
@@ -921,6 +926,10 @@
       "net6.0": {
         "targetAlias": "net6.0",
         "dependencies": {
+          "Adr.MyORM": {
+            "target": "Package",
+            "version": "[3.0.0, )"
+          },
           "MySql.Data": {
             "target": "Package",
             "version": "[8.0.28, )"
@@ -936,26 +945,12 @@
         ],
         "assetTargetFallback": true,
         "warn": true,
-        "downloadDependencies": [
-          {
-            "name": "Microsoft.AspNetCore.App.Ref",
-            "version": "[6.0.4, 6.0.4]"
-          },
-          {
-            "name": "Microsoft.NETCore.App.Ref",
-            "version": "[6.0.4, 6.0.4]"
-          },
-          {
-            "name": "Microsoft.WindowsDesktop.App.Ref",
-            "version": "[6.0.4, 6.0.4]"
-          }
-        ],
         "frameworkReferences": {
           "Microsoft.NETCore.App": {
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\7.0.100-preview.4.22252.9\\RuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\6.0.300\\RuntimeIdentifierGraph.json"
       }
     }
   }
